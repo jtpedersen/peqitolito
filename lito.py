@@ -42,17 +42,17 @@ class heightmap(object):
                 self.addFace(prev_xy, prev_y, cur)
                 self.addFace(prev_xy, cur, prev_x)
 
+    def addFace(self, v1, v2, v3):
+        """add one for objs sake"""
+        self.faces.append ( (v1+1, v2+1, v3+1) )
+
+
     def boxify(self):
         """turn into a box
 
         for each outer edge create lower version at (x,y,0)
-        
-        join all to a center vertex
-
-        0 1 2 3
-        8     9
-        4 5 6 7
-
+        and add a quad if possible
+        # TODO: this does create a few duplicate vertices, 
         """
         w,h = self.img.size
         self.addSkirt( [ i for i in range(w)])
@@ -60,11 +60,7 @@ class heightmap(object):
         self.addSkirt( [ j*w for j in range(h)], stride = w)
         self.addSkirt( [ j*w + w-1 for j in range(h)], stride = w)
 
-        #add a bottom
-        self.addVertex( (w/2, h/2, 0) )
-        c = len(self.vertices)-1
-        for idx in range(w*h, c):
-            self.addFace(idx, idx -1, c)
+        self.addBottom()
             
     def addSkirt(self, top_indicies, stride = 1):
         for i in range(len(top_indicies)):
@@ -83,11 +79,12 @@ class heightmap(object):
         self.addFace(top, top-stride, bottom)
         self.addFace(top-stride, bottom-1, bottom)
         
-
-        
-    def addFace(self, v1, v2, v3):
-        """add one for objs sake"""
-        self.faces.append ( (v1+1, v2+1, v3+1) )
+    def addBottom(self):
+        w,h = self.img.size
+        self.addVertex( (w/2, h/2, 0) )
+        c = len(self.vertices)-1
+        for idx in range(w*h, c):
+            self.addFace(idx, idx -1, c)
 
     def store(self, fn):
         with codecs.open(fn, 'w', 'utf-8') as out:
@@ -96,6 +93,7 @@ class heightmap(object):
             out.write("\n")
             for f in self.faces:
                 out.write("f {} {} {}\n".format(*f))
+
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
