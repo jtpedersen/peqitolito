@@ -1,17 +1,32 @@
+#!/usr/bin/env python3
 """A simple litophany generator
+
+Usage: 
+  lito [options] <image> <outfile>
+
+Options:
+  -d --dimension=DIMENSION  Maximal dimension [default: 10.0] 
+  -z --zoffset=ZOFFSET      Padding in bottom to avoid holes [default: 0.3]
+  -s --zscale=ZSCALE        Maximal height in [default: 2.5]
+  -h  -help                 This screen
+  -v --version              Version informaion
 
 """
 
 import sys, os, codecs
 from PIL import Image
 from PIL import ImageFilter
+from docopt import docopt
+import pprint 
+pp = pprint.PrettyPrinter(indent=4)
+
 
 class heightmap(object):
 
-    def __init__(self, img, xyscale = 1.0, zscale = 100.0, zoffset = 10.0):
+    def __init__(self, img, xyscale, zscale, zoffset):
         self.img = img.convert(mode="L")
         self.xyscale = xyscale
-        self.zscale = zscale
+        self.zscale = zscale / 255.0
         self.zoffset = zoffset
         self.faces = []
         self.vertices = []
@@ -23,9 +38,9 @@ class heightmap(object):
         for y in range(h):
             for x in range(w):
                 xf = float(x) * self.xyscale
-                yf = float(y) * self.xyscale
-                val = pixels[x,y]
-                zf = float(val)/255.0 * self.zscale + self.zoffset
+                yf = float(h - y - 1) * self.xyscale
+                val = float(255 - pixels[x,y])
+                zf = val * self.zscale
                 self.addVertex( (xf,yf,zf) )
     
     def addVertex(self, v):
@@ -66,7 +81,7 @@ class heightmap(object):
         for i in range(len(top_indicies)):
             idx = top_indicies[i]
             x,y,z =  self.vertices[idx] 
-            self.addVertex(  (x,y, 0) )
+            self.addVertex(  (x,y, -self.zoffset) )
             if i > 0:
                 self.addBackQuad(idx, stride)
 
@@ -81,7 +96,7 @@ class heightmap(object):
         
     def addBottom(self):
         w,h = self.img.size
-        self.addVertex( (w/2, h/2, 0) )
+        self.addVertex( (self.xyscale * w/2, self.xyscale * h/2, -self.zoffset) )
         c = len(self.vertices)-1
         for idx in range(w*h, c):
             self.addFace(idx, idx -1, c)
@@ -96,21 +111,25 @@ class heightmap(object):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print(__doc__)
-        sys.exit(-1)
-        
+    args = docopt(__doc__, version = "PeqitoLito 0.1b")
+    pp.pprint(args)
 
-    fn = sys.argv[1]
-    
-    img = Image.open(fn).filter(ImageFilter.EDGE_ENHANCE).filter(ImageFilter.MedianFilter(5))
+    fn = args['<image>']
+    dim = float(args['--dimension'])
+    zoffset = float(args['--zoffset'])
+    zscale = float(args['--zscale'])
+    outfile = args['<outfile>']
+    img = Image.open(fn)
+    #.filter(ImageFilter.EDGE_ENHANCE).filter(ImageFilter.MedianFilter(5))
     #.filter(ImageFilter.GaussianBlur())
 
-    img.show()
-
-    hm = heightmap(img)
+#    img.show()
+    xyscale = dim / float(max(*img.size))
+    print("image : {}x{}".format(*img.size))
+    print("Scaling xy:{} z:{} ".format(xyscale, zscale))
+    hm = heightmap(img, xyscale = xyscale, zoffset = zoffset , zscale = zscale)
     hm.triangulate()
     hm.boxify()
-    hm.store("lito.obj")
+    hm.store(outfile)
 
-    input("Await keypress...")
+ #   input("Await keypress...")
