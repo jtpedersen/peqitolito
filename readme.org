@@ -1,0 +1,33 @@
+* Pequito Lito
+  /a small litophany generator/
+
+  To make litophanies with a 3D printer.
+  
+  In essencese it converts an image to a heightmap. Where the heights
+  are inverted. Tall mountains correpsonds to dark regions and
+  vallys to light areas.
+
+  The output is obj as it is easy to generate and most slices will read it.
+
+  It assumes that the slicer uses mm as measument units.
+
+  The heightmap comes with a userconfigurable box underneath such that
+  the heightmap is a solid.
+
+  It uses python, Pillow and docopt.
+
+* Getting started:
+  #+BEGIN_SRC sh
+   $./lito -h
+   A simple litophany generator
+   
+   Usage: 
+     lito [options] <image> <outfile>
+   
+   Options:
+     -d --dimension=DIMENSION  Maximal dimension [default: 10.0] 
+     -z --zoffset=ZOFFSET      Padding in bottom to avoid holes [default: 0.3]
+     -s --zscale=ZSCALE        Maximal height in [default: 2.5]
+     -h  -help                 This screen
+     -v --version              Version informaion
+  #+END_SRC
